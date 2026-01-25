@@ -6,19 +6,23 @@ import { Result } from 'src/common/Result';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly user: Repository<User>,
     private jwt: JwtService,
+    private configService: ConfigService,
   ) {}
 
   token(id: number): string {
-    return this.jwt.sign({ id }, { secret: 'sky' });
+    return this.jwt.sign(
+      { id },
+      { secret: this.configService.get('jwt.secret') },
+    );
   }
   async register(registerUserDto: UserDto) {
-    // 检查邮箱是否已存在
     const existingUser = await this.user.findOne({
       where: { email: registerUserDto.email },
     });
@@ -28,8 +32,6 @@ export class UserService {
 
     const user = new User();
     user.email = registerUserDto.email;
-
-    // 2. 注册时加密：使用 salt 迭代 10 次
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(registerUserDto.password, salt);
 
@@ -46,14 +48,11 @@ export class UserService {
       return Result.error('用户不存在');
     }
 
-    // 3. 登录时校验：比对明文密码和数据库里的哈希值
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
       return Result.error('密码错误');
     }
-
-    // 脱敏处理
     const { password: _, ...result } = user;
 
     return Result.successWithData({

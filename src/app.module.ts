@@ -14,7 +14,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     AuthModule,
     // 1. 全局配置模块
     ConfigModule.forRoot({
-      isGlobal: true, // 使 ConfigService 在全站可用，无需重复 import
+      isGlobal: true,
       load: [configuration],
     }),
 
@@ -29,12 +29,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
-        
-        // 自动加载实体
         autoLoadEntities: true,
-        // 开发环境下开启，生产环境建议关闭
         synchronize: configService.get<boolean>('database.synchronize'),
-        
         // 连接策略
         retryDelay: 500,
         retryAttempts: 10,

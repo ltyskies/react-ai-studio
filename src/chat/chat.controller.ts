@@ -24,8 +24,6 @@ export class ChatController {
     return this.chatService.createConversation(userId);
   }
 
-  // 获取某个会话的历史消息
-  // chat.controller.ts
   @Get('conversation')
   async getConversationDetail(
     @Query('userId') userId: number, 
@@ -54,7 +52,6 @@ export class ChatController {
 
     let isAborted = false;
 
-    // 1. 监听连接关闭事件
     req.on('close', () => {
       isAborted = true;
       console.log('客户端连接已断开，停止流输出');
@@ -67,8 +64,6 @@ export class ChatController {
       );
 
       for await (const chunk of streamGenerator) {
-        // SSE format: "data: <content>\n\n"
-        // We serialize the chunk to JSON to handle newlines/special chars safely
         if (isAborted) {
           break; // 停止生成器循环
         }
@@ -80,8 +75,6 @@ export class ChatController {
       res.end();
     } catch (error) {
       console.error('Streaming error:', error);
-      // If headers aren't sent yet, we can send JSON error.
-      // If streaming started, we might need to send a special error event.
       res.write(
         `event: error\ndata: ${JSON.stringify({ message: 'Internal Server Error' })}\n\n`,
       );

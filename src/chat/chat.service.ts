@@ -34,9 +34,8 @@ export class ChatService {
       configuration: {
         baseURL: baseURL,
       },
-      // 填入你的 DeepSeek API Key
       apiKey: apiKey,
-      // 指定使用的模型，可选 deepseek-chat (V3) 或 deepseek-reasoner (R1)
+      // 指定使用的模型
       modelName: modelName,
       // 流式输出配置
       streaming: true,
@@ -53,7 +52,7 @@ export class ChatService {
     return this.conversationRepo.save(conversation);
   }
 
-  // 2. 获取单个会话详情（包含消息历史）
+  // 2. 获取单个会话详情
   async getConversationDetail(userId: number, conversationId: number) {
     const conversation = await this.conversationRepo.findOne({
       where: { id: conversationId },

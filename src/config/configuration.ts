@@ -6,7 +6,7 @@ export default () => ({
     username: process.env.DB_USERNAME || 'root',
     password: process.env.DB_PASSWORD || '123456',
     database: process.env.DB_DATABASE || 'ai_chat_db',
-    synchronize: process.env.DB_SYNC === 'true', // 注意布尔值的转换
+    synchronize: process.env.DB_SYNC === 'true',
   },
   ai: {
     deepseek: {
@@ -15,5 +15,8 @@ export default () => ({
       model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
     }
   },
-  // 你之前的 chat 配置也可以放在这里
+  jwt: {
+    secret: process.env.JWT_SECRET || 'default_secret_key', 
+    expiresIn: process.env.JWT_EXPIRES_IN || '3600s',
+  },
 });
