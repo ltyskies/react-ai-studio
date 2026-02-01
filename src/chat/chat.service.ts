@@ -15,6 +15,7 @@ import {
 } from '@langchain/core/messages';
 import { ChatOpenAI } from '@langchain/openai';
 import { ConfigService } from '@nestjs/config';
+import { Result } from 'src/common/Result';
 
 @Injectable()
 export class ChatService {
@@ -44,12 +45,14 @@ export class ChatService {
   }
 
   // 1. 创建新会话
-  async createConversation(userId: number): Promise<Conversation> {
+  async createConversation(userId: number) {
     const conversation = this.conversationRepo.create({
       userId,
       title: '新对话',
     });
-    return this.conversationRepo.save(conversation);
+    const savedConversation = await this.conversationRepo.save(conversation);
+
+    return Result.successWithData(savedConversation.id);
   }
 
   // 2. 获取单个会话详情
@@ -69,7 +72,7 @@ export class ChatService {
     conversation.messages.sort(
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
     );
-    return conversation;
+    return Result.successWithData(conversation);
   }
 
   // 4. 核心功能：流式聊天
@@ -90,12 +93,12 @@ export class ChatService {
     const history = await this.messageRepo.find({
       where: { conversationId },
       order: { createdAt: 'ASC' },
-      take: 20,
+      take: 10,
     });
 
     // 4. Convert to LangChain format
     const messages: BaseMessage[] = [
-      new SystemMessage('You are a helpful AI assistant powered by DeepSeek.'),
+      new SystemMessage('你是一个高级react开发工程师'),
       ...history.map((msg) => {
         if (msg.role === MessageRole.USER) return new HumanMessage(msg.content);
         return new AIMessage(msg.content);
