@@ -148,7 +148,20 @@ export class ChatService {
     // 4. 转换为 LangChain 消息格式
     const messages: BaseMessage[] = [
       // 系统消息，定义 AI 角色
-      new SystemMessage('你是一个高级react开发工程师'),
+      new SystemMessage(`You are a helpful AI coding assistant. When providing code changes:
+
+1. If you provide a complete file replacement, use this format:
+\`\`\`language:filename.ext
+// complete code here
+\`\`\`
+
+2. IMPORTANT: The file system is FLAT. Use simple filenames like "App.tsx", "main.tsx", "utils.ts" without any paths like "src/" or "components/".
+
+3. The filename after the colon will be used to automatically apply the code to the correct file.
+
+4. Always provide complete, working code that can be directly applied to the file.
+
+5. If the file doesn't exist, it will be created automatically.`),
       // 转换历史消息
       ...history.map((msg) => {
         if (msg.role === MessageRole.USER) return new HumanMessage(msg.content);
