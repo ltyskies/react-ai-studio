@@ -1,39 +1,143 @@
 /**
  * @file user.service.spec.ts
  * @description UserService 的单元测试
- * @module 测试模块 - 用户模块
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 
-/**
- * UserService 测试套件
- * @description 测试 UserService 的基本功能
- */
 describe('UserService', () => {
-  /** UserService 实例 */
   let service: UserService;
+  let userRepo: {
+    findOne: jest.Mock;
+    save: jest.Mock;
+  };
+  let jwtService: {
+    sign: jest.Mock;
+  };
+  let configService: {
+    get: jest.Mock;
+  };
 
-  /**
-   * 每个测试用例执行前的初始化
-   * @description 创建测试模块并编译
-   */
-  beforeEach(async () => {
-    // 创建测试模块，导入 UserService
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [UserService],
-    }).compile();
+  beforeEach(() => {
+    userRepo = {
+      findOne: jest.fn(),
+      save: jest.fn(),
+    };
+    jwtService = {
+      sign: jest.fn(),
+    };
+    configService = {
+      get: jest.fn(),
+    };
 
-    // 获取服务实例
-    service = module.get<UserService>(UserService);
+    service = new UserService(
+      userRepo as any,
+      jwtService as any,
+      configService as any,
+    );
   });
 
-  /**
-   * 服务实例化测试
-   * @description 验证 UserService 是否成功实例化
-   */
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('should return current prompt rules', async () => {
+    userRepo.findOne.mockResolvedValue({
+      id: 1,
+      promptRules: 'Always answer in Chinese',
+    });
+
+    await expect(service.getPromptRules(1)).resolves.toEqual({
+      code: 200,
+      data: {
+        rules: 'Always answer in Chinese',
+      },
+    });
+  });
+
+  it('should save prompt rules for current user', async () => {
+    const user = {
+      id: 1,
+      promptRules: null,
+    };
+    userRepo.findOne.mockResolvedValue(user);
+    userRepo.save.mockImplementation(async (entity) => entity);
+
+    const result = await service.updatePromptRules(
+      1,
+      'Keep explanations short',
+    );
+
+    expect(user.promptRules).toBe('Keep explanations short');
+    expect(userRepo.save).toHaveBeenCalledWith(user);
+    expect(result).toEqual({
+      code: 200,
+      data: {
+        rules: 'Keep explanations short',
+      },
+    });
+  });
+
+  it('should normalize whitespace-only prompt rules to empty state', async () => {
+    const user = {
+      id: 1,
+      promptRules: 'Previous rules',
+    };
+    userRepo.findOne.mockResolvedValue(user);
+    userRepo.save.mockImplementation(async (entity) => entity);
+
+    const result = await service.updatePromptRules(1, '   ');
+
+    expect(user.promptRules).toBeNull();
+    expect(result).toEqual({
+      code: 200,
+      data: {
+        rules: '',
+      },
+    });
+  });
+
+  it('should clear prompt rules', async () => {
+    const user = {
+      id: 1,
+      promptRules: 'Always use full file replacements',
+    };
+    userRepo.findOne.mockResolvedValue(user);
+    userRepo.save.mockImplementation(async (entity) => entity);
+
+    const result = await service.clearPromptRules(1);
+
+    expect(user.promptRules).toBeNull();
+    expect(result).toEqual({
+      code: 200,
+      data: {
+        rules: '',
+      },
+    });
+  });
+
+  it('should reject non-string prompt rules payloads', async () => {
+    await expect(
+      service.updatePromptRules(1, undefined as unknown as string),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('should reject missing authenticated user id', async () => {
+    await expect(service.getPromptRules(undefined)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
+  it('should reject unknown authenticated user', async () => {
+    userRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.getPromptRules(1)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });

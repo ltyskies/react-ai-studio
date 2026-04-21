@@ -4,10 +4,26 @@
  * @module 用户模块
  */
 
-import { Controller, Post, Body } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserDto } from './dto/user.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+interface AuthenticatedRequest {
+  user?: {
+    userId?: number;
+  };
+}
 
 /**
  * 用户控制器
@@ -17,13 +33,16 @@ import { ApiTags } from '@nestjs/swagger';
  */
 @Controller('user')
 @ApiTags('User')
-@Controller('user')
 export class UserController {
   /**
    * 构造函数，注入 UserService
    * @param userService - 用户服务实例
    */
   constructor(private readonly userService: UserService) {}
+
+  private getUserId(req: AuthenticatedRequest) {
+    return req.user?.userId;
+  }
 
   /**
    * 用户登录
@@ -47,5 +66,26 @@ export class UserController {
   @Post('register')
   register(@Body() registerUserDto: UserDto) {
     return this.userService.register(registerUserDto);
+  }
+
+  @Get('rules')
+  @UseGuards(JwtAuthGuard)
+  getPromptRules(@Req() req: AuthenticatedRequest) {
+    return this.userService.getPromptRules(this.getUserId(req));
+  }
+
+  @Put('rules')
+  @UseGuards(JwtAuthGuard)
+  updatePromptRules(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { rules: string },
+  ) {
+    return this.userService.updatePromptRules(this.getUserId(req), body?.rules);
+  }
+
+  @Delete('rules')
+  @UseGuards(JwtAuthGuard)
+  clearPromptRules(@Req() req: AuthenticatedRequest) {
+    return this.userService.clearPromptRules(this.getUserId(req));
   }
 }

@@ -1,128 +1,218 @@
 /**
  * @file chat.controller.ts
- * @description 聊天控制器，处理 AI 对话相关的 HTTP 请求
+ * @description 聊天控制器，处理 AI 对话相关 HTTP 请求
  * @module 聊天模块
  */
 
 import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Req,
   BadRequestException,
-  Res,
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  Post,
+  Put,
   Query,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { ChatService } from './chat.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { Response } from 'express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ChatService } from './chat.service';
+import type { ConversationWorkspace } from './types/conversation-workspace.type';
 
-/**
- * 聊天控制器
- * @description 处理会话管理和 AI 流式对话请求
- * @decorator @Controller('chat') - 定义路由前缀为 /chat
- * @decorator @UseGuards(JwtAuthGuard) - 应用 JWT 认证守卫
- */
+interface AuthenticatedRequest {
+  user?: {
+    userId?: number;
+  };
+  on: (event: string, listener: () => void) => void;
+}
+
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
 export class ChatController {
-  /**
-   * 构造函数，注入 ChatService
-   * @param chatService - 聊天服务实例
-   */
   constructor(private readonly chatService: ChatService) {}
 
-  /**
-   * 创建新会话
-   * @description 为用户创建一个新的对话会话
-   * @param userId - 用户 ID
-   * @returns 新创建会话的 ID
-   * @decorator @Post('conversation') - 处理 POST /chat/conversation 请求
-   */
-  @Post('conversation')
-  async createConversation(@Body('userId') userId: number) {
-    return this.chatService.createConversation(userId);
+  private getUserId(req: AuthenticatedRequest) {
+    return req.user?.userId;
   }
 
-  /**
-   * 获取会话详情
-   * @description 获取指定会话的详细信息和消息历史
-   * @param userId - 用户 ID，用于权限验证
-   * @param id - 会话 ID
-   * @returns 会话详情和消息列表
-   * @decorator @Get('conversation') - 处理 GET /chat/conversation 请求
-   */
-  @Get('conversation')
-  async getConversationDetail(
-    @Query('userId') userId: number,
-    @Query('id') id: number,
-  ) {
-    return this.chatService.getConversationDetail(userId, id);
-  }
+  private getHttpExceptionMessage(error: HttpException, fallback: string) {
+    const response = error.getResponse();
 
-  /**
-   * 流式消息接口（SSE）
-   * @description 接收用户消息，通过 SSE 流式返回 AI 回复
-   * @param req - HTTP 请求对象，用于监听连接关闭
-   * @param body - 请求体，包含会话 ID 和用户消息
-   * @param res - HTTP 响应对象，用于流式输出
-   * @decorator @Post('stream') - 处理 POST /chat/stream 请求
-   */
-  @Post('stream')
-  async streamMessage(
-    @Req() req,
-    @Body() body: { conversationId: number; message: string },
-    @Res() res: Response,
-  ) {
-    const { conversationId, message } = body;
-    // 验证必要参数
-    if (!conversationId || !message) {
-      throw new BadRequestException('Missing conversationId or message');
+    if (typeof response === 'string' && response.trim()) {
+      return response;
     }
 
-    // 设置 SSE 响应头
+    if (response && typeof response === 'object' && 'message' in response) {
+      const { message } = response as { message?: string | string[] };
+
+      if (typeof message === 'string' && message.trim()) {
+        return message;
+      }
+
+      if (Array.isArray(message)) {
+        const normalizedMessage = message
+          .filter((item) => typeof item === 'string' && item.trim())
+          .join(', ');
+
+        if (normalizedMessage) {
+          return normalizedMessage;
+        }
+      }
+    }
+
+    return fallback;
+  }
+
+  private buildStreamErrorPayload(error: unknown) {
+    if (error instanceof HttpException) {
+      const status = error.getStatus();
+      const reason =
+        status === 400
+          ? 'bad_request'
+          : status === 401
+            ? 'unauthorized'
+            : status === 403
+              ? 'forbidden'
+              : status === 404
+                ? 'not_found'
+                : 'http_error';
+
+      return {
+        message: this.getHttpExceptionMessage(error, 'Request failed'),
+        retryable: status === 408 || status === 429 || status >= 500,
+        reason,
+      };
+    }
+
+    return {
+      message: 'Internal Server Error',
+      retryable: true,
+      reason: 'internal_error',
+    };
+  }
+
+  @Post('conversation')
+  async createConversation(@Req() req: AuthenticatedRequest) {
+    return this.chatService.createConversation(this.getUserId(req));
+  }
+
+  @Get('conversations')
+  async getConversationList(@Req() req: AuthenticatedRequest) {
+    return this.chatService.getConversationList(this.getUserId(req));
+  }
+
+  @Get('conversation')
+  async getConversationDetail(
+    @Req() req: AuthenticatedRequest,
+    @Query('id') id: string,
+  ) {
+    const conversationId = Number(id);
+
+    if (!conversationId) {
+      throw new BadRequestException('Missing conversation id');
+    }
+
+    return this.chatService.getConversationDetail(
+      this.getUserId(req),
+      conversationId,
+    );
+  }
+
+  @Put('conversation/workspace')
+  async saveConversationWorkspace(
+    @Req() req: AuthenticatedRequest,
+    @Body()
+    body: { conversationId: number; workspace: ConversationWorkspace },
+  ) {
+    const { conversationId, workspace } = body;
+
+    if (!conversationId || !workspace) {
+      throw new BadRequestException('Missing conversationId or workspace');
+    }
+
+    return this.chatService.saveConversationWorkspace(
+      this.getUserId(req),
+      conversationId,
+      workspace,
+    );
+  }
+
+  @Post('stream')
+  async streamMessage(
+    @Req() req: AuthenticatedRequest,
+    @Body()
+    body: {
+      conversationId: number;
+      message: string;
+      workspace: ConversationWorkspace;
+      requestId: string;
+    },
+    @Res() res: Response,
+  ) {
+    const { conversationId, message, workspace, requestId } = body;
+
+    if (!conversationId || !message || !workspace || !requestId) {
+      throw new BadRequestException(
+        'Missing conversationId, message, workspace or requestId',
+      );
+    }
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
 
-    // 标记连接是否已断开
-    let isAborted = false;
+    const abortController = new AbortController();
+    let isStreamFinished = false;
 
-    // 监听客户端断开连接事件
     req.on('close', () => {
-      isAborted = true;
-      console.log('客户端连接已断开，停止流输出');
+      if (isStreamFinished) {
+        return;
+      }
+
+      abortController.abort();
+      console.log('Client connection closed, stop streaming');
     });
-    console.log('开始对话');
 
     try {
-      // 调用服务生成流式回复
       const streamGenerator = await this.chatService.generateStream(
+        this.getUserId(req),
         conversationId,
         message,
+        workspace,
+        requestId,
+        { signal: abortController.signal },
       );
 
-      // 逐块输出 AI 回复
       for await (const chunk of streamGenerator) {
-        if (isAborted) {
-          break; // 客户端断开时停止生成
+        if (abortController.signal.aborted || res.writableEnded) {
+          break;
         }
+
         res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
       }
 
-      // 发送流结束标记
-      res.write('data: [DONE]\n\n');
-      res.end();
+      if (!abortController.signal.aborted && !res.writableEnded) {
+        res.write('data: [DONE]\n\n');
+      }
+
+      isStreamFinished = true;
+      if (!res.writableEnded) {
+        res.end();
+      }
     } catch (error) {
-      // 发生错误时返回错误事件
       console.error('Streaming error:', error);
-      res.write(
-        `event: error\ndata: ${JSON.stringify({ message: 'Internal Server Error' })}\n\n`,
-      );
-      res.end();
+      isStreamFinished = true;
+
+      if (!abortController.signal.aborted && !res.writableEnded) {
+        res.write(
+          `event: error\ndata: ${JSON.stringify(this.buildStreamErrorPayload(error))}\n\n`,
+        );
+        res.end();
+      }
     }
   }
 }

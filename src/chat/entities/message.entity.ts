@@ -11,6 +11,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Conversation } from './conversation.entity';
 
@@ -27,12 +28,26 @@ export enum MessageRole {
   SYSTEM = 'system',
 }
 
+export enum StreamStatus {
+  PENDING = 'pending',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  INTERRUPTED = 'interrupted',
+}
+
 /**
  * 消息实体
  * @description 定义聊天消息的数据结构和数据库表映射关系
  *              每条消息属于一个会话
  * @decorator @Entity('messages') - 映射到数据库 messages 表
  */
+@Index(
+  'uniq_messages_conversation_role_request',
+  ['conversationId', 'role', 'requestId'],
+  {
+    unique: true,
+  },
+)
 @Entity('messages')
 export class Message {
   /**
@@ -57,7 +72,18 @@ export class Message {
    * @decorator @Column({ type: 'enum', enum: ['user', 'assistant', 'system'] }) - 枚举类型列
    */
   @Column({ type: 'enum', enum: ['user', 'assistant', 'system'] })
-  role: 'user' | 'assistant' | 'system';
+  role: MessageRole;
+
+  @Column({ name: 'request_id', type: 'varchar', length: 64, nullable: true })
+  requestId: string | null;
+
+  @Column({
+    name: 'stream_status',
+    type: 'enum',
+    enum: StreamStatus,
+    default: StreamStatus.COMPLETED,
+  })
+  streamStatus: StreamStatus;
 
   /**
    * 消息内容

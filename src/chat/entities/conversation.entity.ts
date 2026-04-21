@@ -10,11 +10,10 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
   OneToMany,
 } from 'typeorm';
 import { Message } from './message.entity';
+import type { ConversationWorkspace } from '../types/conversation-workspace.type';
 
 /**
  * 会话实体
@@ -47,6 +46,18 @@ export class Conversation {
    */
   @Column({ default: 'New Chat' })
   title: string;
+
+  @Column({ name: 'workspace_snapshot', type: 'json', nullable: true })
+  workspaceSnapshot: ConversationWorkspace | null;
+
+  @Column({ name: 'memory_summary', type: 'text', nullable: true })
+  memorySummary: string | null;
+
+  @Column({ name: 'summarized_until_message_id', type: 'int', nullable: true })
+  summarizedUntilMessageId: number | null;
+
+  @Column({ name: 'memory_updated_at', type: 'datetime', nullable: true })
+  memoryUpdatedAt: Date | null;
 
   /**
    * 创建时间

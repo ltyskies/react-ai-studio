@@ -9,6 +9,10 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+interface JwtPayload {
+  id: number;
+}
+
 /**
  * JWT 认证策略
  * @description 实现 Passport JWT 策略，从请求头中提取并验证 JWT Token
@@ -37,7 +41,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * @param payload - JWT Token 解码后的载荷
    * @returns 包含用户 ID 的对象，将被附加到请求对象
    */
-  async validate(payload: any) {
+  validate(payload: JwtPayload) {
     // 返回的对象会被注入到 request.user 中，供后续使用
     return { userId: payload.id };
   }

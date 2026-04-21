@@ -26,6 +26,7 @@ export class RoleGuard implements CanActivate {
   ): boolean | Promise<boolean> | Observable<boolean> {
     // 当前实现直接返回 true，允许所有访问
     // 后续可根据需求实现具体的角色验证逻辑
+    void context;
     return true;
   }
 }

@@ -42,6 +42,9 @@ export class User {
   @Column()
   password: string;
 
+  @Column({ name: 'prompt_rules', type: 'text', nullable: true })
+  promptRules: string | null;
+
   /**
    * 创建时间
    * @description 用户账号创建时间，自动记录

@@ -1,41 +1,50 @@
 /**
  * @file user.controller.spec.ts
  * @description UserController 的单元测试
- * @module 测试模块 - 用户模块
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
 import { UserController } from './user.controller';
-import { UserService } from './user.service';
 
-/**
- * UserController 测试套件
- * @description 测试 UserController 的基本功能
- */
 describe('UserController', () => {
-  /** UserController 实例 */
   let controller: UserController;
+  const userService = {
+    login: jest.fn(),
+    register: jest.fn(),
+    getPromptRules: jest.fn(),
+    updatePromptRules: jest.fn(),
+    clearPromptRules: jest.fn(),
+  };
 
-  /**
-   * 每个测试用例执行前的初始化
-   * @description 创建测试模块并编译
-   */
-  beforeEach(async () => {
-    // 创建测试模块，导入控制器和服务
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [UserController],
-      providers: [UserService],
-    }).compile();
-
-    // 获取控制器实例
-    controller = module.get<UserController>(UserController);
+  beforeEach(() => {
+    jest.clearAllMocks();
+    controller = new UserController(userService as any);
   });
 
-  /**
-   * 控制器实例化测试
-   * @description 验证 UserController 是否成功实例化
-   */
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('should delegate getPromptRules with current user id', () => {
+    controller.getPromptRules({ user: { userId: 7 } });
+
+    expect(userService.getPromptRules).toHaveBeenCalledWith(7);
+  });
+
+  it('should delegate updatePromptRules with current user id and rules', () => {
+    controller.updatePromptRules(
+      { user: { userId: 9 } },
+      { rules: 'Always answer in Chinese' },
+    );
+
+    expect(userService.updatePromptRules).toHaveBeenCalledWith(
+      9,
+      'Always answer in Chinese',
+    );
+  });
+
+  it('should delegate clearPromptRules with current user id', () => {
+    controller.clearPromptRules({ user: { userId: 11 } });
+
+    expect(userService.clearPromptRules).toHaveBeenCalledWith(11);
   });
 });

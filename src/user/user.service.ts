@@ -4,7 +4,12 @@
  * @module 用户模块
  */
 
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserDto } from './dto/user.dto';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -100,12 +105,62 @@ export class UserService {
     }
 
     // 解构用户对象，排除 password 字段
-    const { password: _, ...result } = user;
+    const { password: _, promptRules: __, ...result } = user;
 
     // 返回用户信息和 Token
     return Result.successWithData({
       ...result,
       token: this.token(user.id),
     });
+  }
+
+  async getPromptRules(userId?: number) {
+    const user = await this.getAuthenticatedUser(userId);
+
+    return Result.successWithData({
+      rules: user.promptRules || '',
+    });
+  }
+
+  async updatePromptRules(userId: number | undefined, rules: string) {
+    if (typeof rules !== 'string') {
+      throw new BadRequestException('Missing rules');
+    }
+
+    const user = await this.getAuthenticatedUser(userId);
+    const normalizedRules = rules.trim();
+
+    user.promptRules = normalizedRules ? rules : null;
+    await this.user.save(user);
+
+    return Result.successWithData({
+      rules: user.promptRules || '',
+    });
+  }
+
+  async clearPromptRules(userId?: number) {
+    const user = await this.getAuthenticatedUser(userId);
+    user.promptRules = null;
+    await this.user.save(user);
+
+    return Result.successWithData({
+      rules: '',
+    });
+  }
+
+  private async getAuthenticatedUser(userId?: number) {
+    if (!userId) {
+      throw new ForbiddenException('Forbidden');
+    }
+
+    const user = await this.user.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
   }
 }
