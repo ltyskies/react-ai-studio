@@ -114,6 +114,12 @@ export class UserService {
     });
   }
 
+  /**
+   * 获取用户提示词规则
+   * @description 获取指定用户的自定义提示词规则配置
+   * @param userId - 用户 ID
+   * @returns 包含提示词规则的结果对象
+   */
   async getPromptRules(userId?: number) {
     const user = await this.getAuthenticatedUser(userId);
 
@@ -122,6 +128,13 @@ export class UserService {
     });
   }
 
+  /**
+   * 更新用户提示词规则
+   * @description 更新指定用户的自定义提示词规则，空字符串会被清除
+   * @param userId - 用户 ID
+   * @param rules - 新的提示词规则
+   * @returns 更新后的提示词规则
+   */
   async updatePromptRules(userId: number | undefined, rules: string) {
     if (typeof rules !== 'string') {
       throw new BadRequestException('Missing rules');
@@ -138,6 +151,12 @@ export class UserService {
     });
   }
 
+  /**
+   * 清除用户提示词规则
+   * @description 清除指定用户的自定义提示词规则
+   * @param userId - 用户 ID
+   * @returns 操作结果，规则字段为空字符串
+   */
   async clearPromptRules(userId?: number) {
     const user = await this.getAuthenticatedUser(userId);
     user.promptRules = null;
@@ -148,6 +167,14 @@ export class UserService {
     });
   }
 
+  /**
+   * 获取已认证用户
+   * @description 根据用户 ID 获取用户实体，并进行权限校验
+   * @param userId - 用户 ID
+   * @returns 用户实体
+   * @throws ForbiddenException - 用户未登录时抛出
+   * @throws NotFoundException - 用户不存在时抛出
+   */
   private async getAuthenticatedUser(userId?: number) {
     if (!userId) {
       throw new ForbiddenException('Forbidden');

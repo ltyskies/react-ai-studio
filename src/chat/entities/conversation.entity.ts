@@ -47,15 +47,35 @@ export class Conversation {
   @Column({ default: 'New Chat' })
   title: string;
 
+  /**
+   * 工作区快照
+   * @description 保存会话关联的代码编辑器文件状态，JSON 格式存储
+   * @decorator @Column({ name: 'workspace_snapshot', type: 'json', nullable: true }) - JSON 类型列，可为空
+   */
   @Column({ name: 'workspace_snapshot', type: 'json', nullable: true })
   workspaceSnapshot: ConversationWorkspace | null;
 
+  /**
+   * 会话记忆摘要
+   * @description 长对话的压缩摘要，用于减少模型上下文长度
+   * @decorator @Column({ name: 'memory_summary', type: 'text', nullable: true }) - 长文本列，可为空
+   */
   @Column({ name: 'memory_summary', type: 'text', nullable: true })
   memorySummary: string | null;
 
+  /**
+   * 已摘要到的消息 ID
+   * @description 记录已经被折叠进摘要的最后一条消息 ID，用于增量摘要
+   * @decorator @Column({ name: 'summarized_until_message_id', type: 'int', nullable: true }) - 整数列，可为空
+   */
   @Column({ name: 'summarized_until_message_id', type: 'int', nullable: true })
   summarizedUntilMessageId: number | null;
 
+  /**
+   * 记忆更新时间
+   * @description 上次更新会话摘要的时间
+   * @decorator @Column({ name: 'memory_updated_at', type: 'datetime', nullable: true }) - 日期时间列，可为空
+   */
   @Column({ name: 'memory_updated_at', type: 'datetime', nullable: true })
   memoryUpdatedAt: Date | null;
 

@@ -40,6 +40,12 @@ export class UserController {
    */
   constructor(private readonly userService: UserService) {}
 
+  /**
+   * 从请求中获取用户 ID
+   * @description 从认证请求对象中提取当前登录用户的 ID
+   * @param req - 认证请求对象
+   * @returns 用户 ID，未登录时返回 undefined
+   */
   private getUserId(req: AuthenticatedRequest) {
     return req.user?.userId;
   }
@@ -68,12 +74,29 @@ export class UserController {
     return this.userService.register(registerUserDto);
   }
 
+  /**
+   * 获取用户提示词规则
+   * @description 获取当前登录用户的自定义提示词规则配置
+   * @param req - 认证请求对象，包含用户信息
+   * @returns 用户的提示词规则
+   * @decorator @Get('rules') - 处理 GET /user/rules 请求
+   * @decorator @UseGuards(JwtAuthGuard) - 需要 JWT 认证
+   */
   @Get('rules')
   @UseGuards(JwtAuthGuard)
   getPromptRules(@Req() req: AuthenticatedRequest) {
     return this.userService.getPromptRules(this.getUserId(req));
   }
 
+  /**
+   * 更新用户提示词规则
+   * @description 更新当前登录用户的自定义提示词规则
+   * @param req - 认证请求对象，包含用户信息
+   * @param body - 包含 rules 字段的请求体
+   * @returns 更新后的提示词规则
+   * @decorator @Put('rules') - 处理 PUT /user/rules 请求
+   * @decorator @UseGuards(JwtAuthGuard) - 需要 JWT 认证
+   */
   @Put('rules')
   @UseGuards(JwtAuthGuard)
   updatePromptRules(
@@ -83,6 +106,14 @@ export class UserController {
     return this.userService.updatePromptRules(this.getUserId(req), body?.rules);
   }
 
+  /**
+   * 清除用户提示词规则
+   * @description 清除当前登录用户的自定义提示词规则
+   * @param req - 认证请求对象，包含用户信息
+   * @returns 操作结果
+   * @decorator @Delete('rules') - 处理 DELETE /user/rules 请求
+   * @decorator @UseGuards(JwtAuthGuard) - 需要 JWT 认证
+   */
   @Delete('rules')
   @UseGuards(JwtAuthGuard)
   clearPromptRules(@Req() req: AuthenticatedRequest) {

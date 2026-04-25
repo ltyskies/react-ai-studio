@@ -42,6 +42,11 @@ export class User {
   @Column()
   password: string;
 
+  /**
+   * 用户提示词规则
+   * @description 用户自定义的 AI 提示词规则，用于个性化 AI 回复
+   * @decorator @Column({ name: 'prompt_rules', type: 'text', nullable: true }) - 可为空的长文本列
+   */
   @Column({ name: 'prompt_rules', type: 'text', nullable: true })
   promptRules: string | null;
 

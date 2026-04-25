@@ -28,10 +28,18 @@ export enum MessageRole {
   SYSTEM = 'system',
 }
 
+/**
+ * 流式状态枚举
+ * @description 定义消息流式生成的状态
+ */
 export enum StreamStatus {
+  /** 等待生成中 */
   PENDING = 'pending',
+  /** 生成已完成 */
   COMPLETED = 'completed',
+  /** 生成失败 */
   FAILED = 'failed',
+  /** 生成被中断 */
   INTERRUPTED = 'interrupted',
 }
 
@@ -74,9 +82,19 @@ export class Message {
   @Column({ type: 'enum', enum: ['user', 'assistant', 'system'] })
   role: MessageRole;
 
+  /**
+   * 请求 ID
+   * @description 关联同一轮对话的用户消息和助手消息，用于流式生成跟踪
+   * @decorator @Column({ name: 'request_id', type: 'varchar', length: 64, nullable: true }) - 可变字符串列，可为空
+   */
   @Column({ name: 'request_id', type: 'varchar', length: 64, nullable: true })
   requestId: string | null;
 
+  /**
+   * 流式状态
+   * @description 标记消息的流式生成状态，用于处理中断和重试
+   * @decorator @Column - 枚举类型列，默认已完成
+   */
   @Column({
     name: 'stream_status',
     type: 'enum',
