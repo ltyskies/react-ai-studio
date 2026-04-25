@@ -233,6 +233,24 @@ export class ChatService {
   }
 
   /**
+   * 删除会话
+   * @description 删除指定会话（仅删除会话记录，不删除关联的消息）
+   * @param userId - 当前登录用户 ID
+   * @param conversationId - 会话 ID
+   * @returns 删除结果
+   */
+  async deleteConversation(userId: number | undefined, conversationId: number) {
+    const conversation = await this.getAuthorizedConversation(
+      userId,
+      conversationId,
+    );
+
+    await this.conversationRepo.remove(conversation);
+
+    return Result.successWithData({ deleted: true });
+  }
+
+  /**
    * 获取会话详情
    * @description 读取指定会话及其消息，并同步刷新运行时内存缓存
    * @param userId - 当前登录用户 ID

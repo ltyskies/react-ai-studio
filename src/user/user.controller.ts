@@ -4,16 +4,7 @@
  * @module 用户模块
  */
 
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Post,
-  Put,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserDto } from './dto/user.dto';
 import { ApiTags } from '@nestjs/swagger';
@@ -94,10 +85,10 @@ export class UserController {
    * @param req - 认证请求对象，包含用户信息
    * @param body - 包含 rules 字段的请求体
    * @returns 更新后的提示词规则
-   * @decorator @Put('rules') - 处理 PUT /user/rules 请求
+   * @decorator @Post('rules/update') - 处理 POST /user/rules/update 请求
    * @decorator @UseGuards(JwtAuthGuard) - 需要 JWT 认证
    */
-  @Put('rules')
+  @Post('rules/update')
   @UseGuards(JwtAuthGuard)
   updatePromptRules(
     @Req() req: AuthenticatedRequest,
@@ -111,10 +102,10 @@ export class UserController {
    * @description 清除当前登录用户的自定义提示词规则
    * @param req - 认证请求对象，包含用户信息
    * @returns 操作结果
-   * @decorator @Delete('rules') - 处理 DELETE /user/rules 请求
+   * @decorator @Post('rules/clear') - 处理 POST /user/rules/clear 请求
    * @decorator @UseGuards(JwtAuthGuard) - 需要 JWT 认证
    */
-  @Delete('rules')
+  @Post('rules/clear')
   @UseGuards(JwtAuthGuard)
   clearPromptRules(@Req() req: AuthenticatedRequest) {
     return this.userService.clearPromptRules(this.getUserId(req));

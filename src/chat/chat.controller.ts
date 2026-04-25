@@ -11,7 +11,6 @@ import {
   Get,
   HttpException,
   Post,
-  Put,
   Query,
   Req,
   Res,
@@ -180,14 +179,39 @@ export class ChatController {
   }
 
   /**
+   * 删除会话
+   * @description 删除指定会话（仅删除会话记录，不删除关联的消息）
+   * @param req - 认证请求对象
+   * @param body - 包含会话 ID 的请求体
+   * @returns 删除结果
+   * @decorator @Post('conversation/delete') - 处理 POST /chat/conversation/delete 请求
+   */
+  @Post('conversation/delete')
+  async deleteConversation(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { conversationId: number },
+  ) {
+    const { conversationId } = body;
+
+    if (!conversationId) {
+      throw new BadRequestException('Missing conversation id');
+    }
+
+    return this.chatService.deleteConversation(
+      this.getUserId(req),
+      conversationId,
+    );
+  }
+
+  /**
    * 保存会话工作区
    * @description 保存当前会话的代码编辑器状态和工作区快照
    * @param req - 认证请求对象
    * @param body - 包含会话 ID 和工作区数据的请求体
    * @returns 保存结果
-   * @decorator @Put('conversation/workspace') - 处理 PUT /chat/conversation/workspace 请求
+   * @decorator @Post('conversation/workspace') - 处理 POST /chat/conversation/workspace 请求
    */
-  @Put('conversation/workspace')
+  @Post('conversation/workspace')
   async saveConversationWorkspace(
     @Req() req: AuthenticatedRequest,
     @Body()
