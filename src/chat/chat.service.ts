@@ -671,8 +671,8 @@ export class ChatService {
     return history.filter(
       (message) =>
         message.id !== currentUserMessageId &&
-          this.shouldIncludeInPromptHistory(message, currentUserMessageId),
-      );
+        this.shouldIncludeInPromptHistory(message, currentUserMessageId),
+    );
   }
 
   /**
